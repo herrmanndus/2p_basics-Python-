@@ -5,15 +5,21 @@ Created on Tue Jan 11 14:45:42 2022
 
 @author: dustinherrmann
 """
+# permanently set python path to github local repository 
 
-# import section 
+
+#%% import section 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm 
 import numpy as np
 import os
-import pandas as pd
+import sys
+from useful_functions import running_percentile
+import dill
+from scipy.io import savemat
 
-# define session parameters 
+
+#%% define session parameters 
 animal = 1128
 session = 6
 n_planes = 4
@@ -22,20 +28,21 @@ n_planes = 4
 #load_direc = f'I:\somaDendriteANN_registr\M{animal}\S{session}\suite2p\combined'
 #save_direc = f'I:\somaDendriteANN_registr\M{animal}\S{session}\curatedROIs'
 
-load_direc = f'/Users/dustinherrmann/Downloads/combined'
-save_direc = f'/Users/dustinherrmann/Downloads/outputHere'
+load_direc = '/Users/dustinherrmann/Downloads/combined/'
+save_direc = '/Users/dustinherrmann/Downloads/outputHere/'
 
 if not os.path.exists(save_direc):
     os.makedirs(save_direc)
 
-# load stat.py and ops.py files 
+
+#%% load stat.py and ops.py files 
 stat = np.load(load_direc+'stat.npy',allow_pickle=1)
 ops = np.load(load_direc+'ops.npy',allow_pickle=1).item()
 iscell = np.load(load_direc+'iscell.npy',allow_pickle=1)
 F = np.load(load_direc+'F.npy',allow_pickle=1)
 Fneu = np.load(load_direc+'Fneu.npy',allow_pickle=1)
 
-# find cells and planes
+#%% find cells and planes
 num_rois = np.size(np.nonzero(iscell[:,0]))
 roi_ids = np.nonzero(iscell[:,0])
 stat_iscell = stat[np.nonzero(iscell[:,0])]
@@ -44,9 +51,10 @@ F_rois = np.zeros((1,len(F[0])))
 Fneu_rois = np.zeros((1,len(F[0])))
 planes_rois = [] 
 
-# iterate over ROIs and extract plane, F and Fneu. Also plot 
+#%% iterate over ROIs and extract plane, F and Fneu. Also plot 
 im = np.zeros((ops['Ly'], ops['Lx']))
    
+
 for nn in range(0,num_rois):
     #print(nn)
     planes_rois = np.hstack((planes_rois,int(stat_iscell[nn]['iplane'])))
@@ -56,10 +64,14 @@ for nn in range(0,num_rois):
     ypix = stat[roi_ids[0][nn]]['ypix']#[~stat[are_dendrites[n]]['overlap']]
     xpix = stat[roi_ids[0][nn]]['xpix']#[~stat[are_dendrites[n]]['overlap']]
 
-    im[ypix,xpix] = int(stat_iscell[nn]['iplane'])+1
+    im[ypix,xpix] = int(stat_iscell[nn]['iplane'])+1+nn
 
 ROI_figure = plt.figure()
 plt.imshow(im)
+plt.set_cmap('Greys_r')
+plt.plot(np.r_[0,1024], np.r_[512,512], color='black', linewidth=2)
+plt.plot(np.r_[512,512], np.r_[0,1024],  color='black', linewidth=2)
+plt.xlim(1, 1024), plt.ylim(1024, 1)
 plt.show()
 
 
@@ -67,13 +79,13 @@ plt.show()
 F_rois = np.delete(F_rois,obj=0, axis=0)
 Fneu_rois = np.delete(Fneu_rois,obj=0, axis=0)
 
-# compute dFF using rolling percentile 
-dataframe_perRoi = pd.DataFrame(F_rois)
-F0 = dataframe_perRoi.T.rolling(1000).quantile(0.1,interpolation='midpoint')
-F0 = F0.T.to_numpy();
-last_idx = max(np.nonzero(np.isnan(F0[0,:]))[0])
-F0[:,0:last_idx] = np.tile(F0[:,last_idx+1], (last_idx, 1)).T
-
+#%% compute dFF using rolling percentile 
+# dataframe_perRoi = pd.DataFrame(F_rois)
+# F0 = dataframe_perRoi.T.rolling(window=1000).quantile(0.1) 
+# F0 = F0.T.to_numpy();
+# last_idx = max(np.nonzero(np.isnan(F0[0,:]))[0])
+# F0[:,0:last_idx] = np.tile(F0[:,last_idx+1], (last_idx, 1)).T
+F0 = running_percentile(F_rois,1000,10)
 dFF = (F_rois-F0)/F0;
 
 
@@ -82,7 +94,7 @@ dFF = (F_rois-F0)/F0;
 # plt.show()
 
 
-# plot dF/F traces 
+#%% plot dF/F traces 
 x = np.ndarray.astype(np.unique(planes_rois),'int')
 xx = np.ndarray.astype(np.linspace(0,255,len(x)),'int')
 this_cmap = cm.plasma(xx)
@@ -97,11 +109,25 @@ for nn in range(0,num_rois):
 plt.show()
 
 
-# to do: 
-    # save F, Fneu, planes into .mat file 
-    # save figures 
-    # write corresponding matlab script to read files and plug them into the analysis
+#%% save important variables in .mat files 
+savemat(save_direc+f'py2p_M{animal}_S{session}.mat', {"dFF": dFF,"F0": F0, 
+                                                      "F":F_rois, "FNeu":Fneu_rois,
+                                                      "planes":planes_rois, 
+                                                      "image":im, "ops":ops,
+                                                      "stat":stat, "iscell":iscell})
 
+#%%  save entire session, can be reloaded including all figures using the command below
+dill.dump_session(save_direc+f'py2p_workspace_M{animal}_S{session}.pkl') # save entire session
+# dill.load_session(save_direc+f'py2p_workspace_M{animal}_S{session}.pkl') # this is how you load the entire session later on 
+
+# plt.imshow(ops['refImg'])
+# plt.set_cmap('Greys_r')
+
+# plt.imshow(ops['meanImg'])
+# plt.set_cmap('Greys_r')
+# plt.clim(0,100)
+
+#%%
 
 
 

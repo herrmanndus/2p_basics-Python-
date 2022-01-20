@@ -248,6 +248,16 @@ y=x.reshape(3,4,order='C').copy() # this is default python: flatten along rows a
 y
 
 
+# installing packages
+pip install dill # installs the module 'dill'
+pip freeze # shows all available modules
+
+# using breakpoint 
+for i in range(10):
+    breakpoint()
+    print(i)
+    # to exit breakpoint type quit or exit into the console     
+
 
 
 

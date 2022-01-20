@@ -18,6 +18,7 @@ def running_percentile(traces,wndw,prctl):
     for t in range(0,num_trcs):
         thisF = traces[0,:]
         i = 0
+        #breakpoint()
         while i < len(thisF):
             wndw_ind = np.arange((i-wndw/2),(i+wndw/2))
             wndw_ind = wndw_ind[np.nonzero(wndw_ind >= 0) and np.nonzero(wndw_ind < num_frames)]
