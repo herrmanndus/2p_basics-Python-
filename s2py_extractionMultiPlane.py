@@ -127,7 +127,7 @@ dill.dump_session(save_direc+f'py2p_workspace_M{animal}_S{session}.pkl') # save 
 # plt.set_cmap('Greys_r')
 # plt.clim(0,100)
 
-#%%
+#%% 
 
 
 

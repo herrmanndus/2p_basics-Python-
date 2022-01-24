@@ -258,13 +258,30 @@ for i in range(10):
     print(i)
     # to exit breakpoint type quit or exit into the console     
 
+# playing with the .copy() function 
 
+a = np.array([1,2,3])
+b = a
+c = a.copy()
 
+for ii in range (2):
+    a[ii] = 9
+    print(b)
+    print(c)
 
+a = np.array([[1,2,3],[4,5,6],[7,8,9]])
+b = a[1,:]
+c = a[1,:].copy()
 
+print(a)
+print(b)
+print(c)
 
+a[1,1]=10
 
-
+print(a)
+print(b)
+print(c)
 
 
 
